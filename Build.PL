@@ -1,0 +1,52 @@
+
+use strict;
+use warnings;
+
+use Module::Build 0.3601;
+use lib qw{inc}; use Archive::Ar::Libarchive::ModuleBuild;
+
+my %module_build_args = (
+  "build_requires" => {
+    "Module::Build" => "0.3601"
+  },
+  "configure_requires" => {
+    "Alien::Libarchive" => 0,
+    "Module::Build" => "0.3601"
+  },
+  "dist_abstract" => "Interface for manipulating ar archives with libarchive",
+  "dist_author" => [
+    "Graham Ollis <plicease\@cpan.org>"
+  ],
+  "dist_name" => "Archive-Ar-Libarchive",
+  "dist_version" => "0.03",
+  "license" => "perl",
+  "module_name" => "Archive::Ar::Libarchive",
+  "recommends" => {},
+  "recursive_test_files" => 1,
+  "requires" => {
+    "Alien::Libarchive" => 0,
+    "File::Basename" => 0,
+    "Math::Int64" => "0.28",
+    "perl" => "5.008"
+  },
+  "script_files" => [],
+  "test_requires" => {
+    "Test::More" => 0
+  }
+);
+
+
+my %fallback_build_requires = (
+  "Module::Build" => "0.3601",
+  "Test::More" => 0
+);
+
+
+unless ( eval { Module::Build->VERSION(0.4004) } ) {
+  delete $module_build_args{test_requires};
+  $module_build_args{build_requires} = \%fallback_build_requires;
+}
+
+my $build = Archive::Ar::Libarchive::ModuleBuild->new(%module_build_args);
+
+$build->create_build_script;

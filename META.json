@@ -1,0 +1,56 @@
+{
+   "abstract" : "Interface for manipulating ar archives with libarchive",
+   "author" : [
+      "Graham Ollis <plicease@cpan.org>"
+   ],
+   "dynamic_config" : 0,
+   "generated_by" : "Dist::Zilla version 5.006, CPAN::Meta::Converter version 2.133380",
+   "license" : [
+      "perl_5"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "Archive-Ar-Libarchive",
+   "prereqs" : {
+      "build" : {
+         "requires" : {
+            "Module::Build" : "0.3601"
+         }
+      },
+      "configure" : {
+         "requires" : {
+            "Alien::Libarchive" : "0",
+            "Module::Build" : "0.3601"
+         }
+      },
+      "runtime" : {
+         "requires" : {
+            "Alien::Libarchive" : "0",
+            "File::Basename" : "0",
+            "Math::Int64" : "0.28",
+            "perl" : "5.008"
+         }
+      },
+      "test" : {
+         "requires" : {
+            "Test::More" : "0"
+         }
+      }
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/plicease/archive-ar-libarchive/issues"
+      },
+      "homepage" : "http://perl.wdlabs.com/Archive-Ar-Libarchive/",
+      "repository" : {
+         "type" : "git",
+         "url" : "git://github.com/plicease/archive-ar-libarchive.git",
+         "web" : "https://github.com/plicease/archive-ar-libarchive"
+      }
+   },
+   "version" : "0.03"
+}
+

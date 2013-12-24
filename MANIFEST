@@ -8,6 +8,7 @@ META.yml
 README
 dist.ini
 inc/Archive/Ar/Libarchive/ModuleBuild.pm
+inc/Doco.pm
 lib/Archive/Ar/Libarchive.pm
 lib/Archive/Ar/Libarchive.xs
 t/00_diag.t

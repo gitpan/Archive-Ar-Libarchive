@@ -6,7 +6,7 @@ use Carp qw( carp );
 use File::Basename qw( basename );
 
 # ABSTRACT: Interface for manipulating ar archives with libarchive
-our $VERSION = '0.03'; # VERSION
+our $VERSION = '0.04'; # VERSION
 
 unless($^O eq 'MSWin32')
 {
@@ -211,7 +211,7 @@ Archive::Ar::Libarchive - Interface for manipulating ar archives with libarchive
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 SYNOPSIS
 
@@ -243,7 +243,7 @@ package format (.deb files) use the common format.
 
 The interface attempts to be identical (with a couple of minor extensions) to L<Archive::Ar> and the documentation presented here is based on that module.
 The diagnostic messages issued on error mostly come directly from libarchive, so they will likely not match exactly what L<Archive::Ar> would produce,
-but it should issue a warning (when L<#DEBUG> is turned on) under similar circumstances.
+but it should issue a warning (when L<DEBUG|Archive::Ar::Libarchive#DEBUG> is turned on) under similar circumstances.
 
 The main advantage of L<Archive::Ar> over this module is that it is written in pure perl, and thus does not require a compiler or libarchive.  The advantage of this module
 (at least as of this writing) is that it supports GNU and BSD extensions for longer member filenames.
@@ -259,7 +259,7 @@ The main advantage of L<Archive::Ar> over this module is that it is written in p
 Returns a new L<Archive::AR::Libarchive> object.  Without a filename or glob, it returns an empty object.  If passed a filename as a scalar or a GLOB, it will attempt to populate from
 either of those sources.  If it fails, you will receive undef, instead of an object reference.
 
-This also can take a second optional debugging parameter.  This acts exactly as if L<#DEBUG> is called on the object before it is returned.  If you have a L<#new> that keeps failing, this
+This also can take a second optional debugging parameter.  This acts exactly as if L<DEBUG|Archive::Ar::Libarchive#DEBUG> is called on the object before it is returned.  If you have a L<new|Archive::Ar::Libarchive#new> that keeps failing, this
 should help.
 
 =head2 read
@@ -277,7 +277,7 @@ Returns the number of bytes read, undef on failure.
  my $br = $ar->read_memory($data);
 
 This reads information from the first parameter, and attempts to parse and treat
-it like an ar archive. Like L<#read>, it will wipe out whatever you have in the
+it like an ar archive. Like L<read|Archive::Ar::Libarchive#read>, it will wipe out whatever you have in the
 object and replace it with the contents of the new archive, even if it fails.
 Returns the number of bytes read (processed) if successful, undef otherwise.
 
@@ -301,7 +301,7 @@ information is stripped off. Filenames longer than 16 characters are
 truncated when written to disk in the format, so keep that in mind
 when adding files.
 
-Due to the nature of the ar archive format, L<#add_files> will store
+Due to the nature of the ar archive format, L<add_files|Archive::Ar::Libarchive#add_files> will store
 the uid, gid, mode, size, and creation date of the file as returned by
 L<stat|perlfunc#stat>.
 
@@ -311,7 +311,7 @@ returns the number of files successfully added, or undef on failure.
 
  my $size = $ar->add_data($filename, $data, $filedata);
 
-Takes an filename and a set of data to represent it. Unlike L<#add_files>, L<#add_data>
+Takes an filename and a set of data to represent it. Unlike L<add_files|Archive::Ar::Libarchive#add_files>, L<add_data|Archive::Ar::Libarchive#add_data>
 is a virtual add, and does not require data on disk to be present. The
 data is a hash that looks like:
 
@@ -331,7 +331,7 @@ bytes if it is successful, undef otherwise.
  my $size = $ar->write($filename);
 
 This method will return the data as an .ar archive, or will write to
-the filename present if specified. If given a filename, L<#write> will
+the filename present if specified. If given a filename, L<write|Archive::Ar::Libarchive#write> will
 return the length of the file written, in bytes, or undef on failure.
 If the filename already exists, it will overwrite that file.
 
@@ -389,14 +389,14 @@ of files successfully removed from the archive.
 
  $ar->set_output_format_bsd;
 
-Sets the output format produced by L<#write> to use BSD format.
+Sets the output format produced by L<write|Archive::Ar::Libarchive#write> to use BSD format.
 Note: this method is not available in l<Archive::Ar>.
 
 =head2 set_output_format_svr4
 
  $ar->set_output_format_svr4;
 
-Sets the output format produced by L<#write> to System VR4 format.
+Sets the output format produced by L<write|Archive::Ar::Libarchive#write> to System VR4 format.
 Note: this method is not available in l<Archive::Ar>.
 
 =head2 DEBUG

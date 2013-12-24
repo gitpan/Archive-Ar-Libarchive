@@ -5,7 +5,7 @@ NAME
 
 VERSION
 
-    version 0.03
+    version 0.04
 
 SYNOPSIS
 
@@ -43,7 +43,7 @@ DESCRIPTION
     based on that module. The diagnostic messages issued on error mostly
     come directly from libarchive, so they will likely not match exactly
     what Archive::Ar would produce, but it should issue a warning (when
-    #DEBUG is turned on) under similar circumstances.
+    DEBUG is turned on) under similar circumstances.
 
     The main advantage of Archive::Ar over this module is that it is
     written in pure perl, and thus does not require a compiler or
@@ -64,8 +64,8 @@ METHODS
     fails, you will receive undef, instead of an object reference.
 
     This also can take a second optional debugging parameter. This acts
-    exactly as if #DEBUG is called on the object before it is returned. If
-    you have a #new that keeps failing, this should help.
+    exactly as if DEBUG is called on the object before it is returned. If
+    you have a new that keeps failing, this should help.
 
  read
 
@@ -82,7 +82,7 @@ METHODS
      my $br = $ar->read_memory($data);
 
     This reads information from the first parameter, and attempts to parse
-    and treat it like an ar archive. Like #read, it will wipe out whatever
+    and treat it like an ar archive. Like read, it will wipe out whatever
     you have in the object and replace it with the contents of the new
     archive, even if it fails. Returns the number of bytes read (processed)
     if successful, undef otherwise.
@@ -106,7 +106,7 @@ METHODS
     truncated when written to disk in the format, so keep that in mind when
     adding files.
 
-    Due to the nature of the ar archive format, #add_files will store the
+    Due to the nature of the ar archive format, add_files will store the
     uid, gid, mode, size, and creation date of the file as returned by
     stat.
 
@@ -116,8 +116,8 @@ METHODS
 
      my $size = $ar->add_data($filename, $data, $filedata);
 
-    Takes an filename and a set of data to represent it. Unlike #add_files,
-    #add_data is a virtual add, and does not require data on disk to be
+    Takes an filename and a set of data to represent it. Unlike add_files,
+    add_data is a virtual add, and does not require data on disk to be
     present. The data is a hash that looks like:
 
      $filedata = {
@@ -136,7 +136,7 @@ METHODS
      my $size = $ar->write($filename);
 
     This method will return the data as an .ar archive, or will write to
-    the filename present if specified. If given a filename, #write will
+    the filename present if specified. If given a filename, write will
     return the length of the file written, in bytes, or undef on failure.
     If the filename already exists, it will overwrite that file.
 
@@ -190,14 +190,14 @@ METHODS
 
      $ar->set_output_format_bsd;
 
-    Sets the output format produced by #write to use BSD format. Note: this
+    Sets the output format produced by write to use BSD format. Note: this
     method is not available in l<Archive::Ar>.
 
  set_output_format_svr4
 
      $ar->set_output_format_svr4;
 
-    Sets the output format produced by #write to System VR4 format. Note:
+    Sets the output format produced by write to System VR4 format. Note:
     this method is not available in l<Archive::Ar>.
 
  DEBUG

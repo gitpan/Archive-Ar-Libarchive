@@ -6,7 +6,7 @@ use Carp qw( carp );
 use File::Basename qw( basename );
 
 # ABSTRACT: Interface for manipulating ar archives with libarchive
-our $VERSION = '0.06'; # VERSION
+our $VERSION = '0.07'; # VERSION
 
 unless($^O eq 'MSWin32')
 {
@@ -211,7 +211,7 @@ Archive::Ar::Libarchive - Interface for manipulating ar archives with libarchive
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 SYNOPSIS
 

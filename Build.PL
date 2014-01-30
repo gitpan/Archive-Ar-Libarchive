@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use Module::Build 0.3601;
-use lib qw{inc}; use Archive::Ar::Libarchive::ModuleBuild;
+use lib qw{inc}; use My::ModuleBuild;
 
 my %module_build_args = (
   "build_requires" => {
@@ -12,6 +12,7 @@ my %module_build_args = (
   },
   "configure_requires" => {
     "Alien::Libarchive" => 0,
+    "ExtUtils::CChecker" => 0,
     "Module::Build" => "0.3601"
   },
   "dist_abstract" => "Interface for manipulating ar archives with libarchive",
@@ -19,7 +20,7 @@ my %module_build_args = (
     "Graham Ollis <plicease\@cpan.org>"
   ],
   "dist_name" => "Archive-Ar-Libarchive",
-  "dist_version" => "0.06",
+  "dist_version" => "0.07",
   "license" => "perl",
   "module_name" => "Archive::Ar::Libarchive",
   "recommends" => {},
@@ -48,6 +49,6 @@ unless ( eval { Module::Build->VERSION(0.4004) } ) {
   $module_build_args{build_requires} = \%fallback_build_requires;
 }
 
-my $build = Archive::Ar::Libarchive::ModuleBuild->new(%module_build_args);
+my $build = My::ModuleBuild->new(%module_build_args);
 
 $build->create_build_script;

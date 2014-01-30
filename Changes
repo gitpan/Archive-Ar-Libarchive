@@ -1,5 +1,9 @@
 Revision history for Archive-Ar-Libarchive
 
+0.07      2014-01-29 19:32:39 -0500
+  - link against libarchive.a
+    instead of   libarchive.so
+
 0.06      2014-01-29 09:15:42 -0500
   - remove accidental debug diagnostic
 

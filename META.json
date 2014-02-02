@@ -21,7 +21,7 @@
       },
       "configure" : {
          "requires" : {
-            "Alien::Libarchive" : "0",
+            "Alien::Libarchive" : "0.16",
             "ExtUtils::CChecker" : "0",
             "Module::Build" : "0.3601"
          }
@@ -52,6 +52,6 @@
          "web" : "https://github.com/plicease/archive-ar-libarchive"
       }
    },
-   "version" : "0.07"
+   "version" : "0.08"
 }
 

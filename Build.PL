@@ -11,7 +11,7 @@ my %module_build_args = (
     "Module::Build" => "0.3601"
   },
   "configure_requires" => {
-    "Alien::Libarchive" => 0,
+    "Alien::Libarchive" => "0.16",
     "ExtUtils::CChecker" => 0,
     "Module::Build" => "0.3601"
   },
@@ -20,7 +20,7 @@ my %module_build_args = (
     "Graham Ollis <plicease\@cpan.org>"
   ],
   "dist_name" => "Archive-Ar-Libarchive",
-  "dist_version" => "0.07",
+  "dist_version" => "0.08",
   "license" => "perl",
   "module_name" => "Archive::Ar::Libarchive",
   "recommends" => {},

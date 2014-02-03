@@ -25,4 +25,4 @@ resources:
   bugtracker: https://github.com/plicease/archive-ar-libarchive/issues
   homepage: http://perl.wdlabs.com/Archive-Ar-Libarchive/
   repository: git://github.com/plicease/archive-ar-libarchive.git
-version: '0.08'
+version: '0.09'

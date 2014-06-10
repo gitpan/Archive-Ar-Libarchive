@@ -10,7 +10,7 @@ configure_requires:
   ExtUtils::CChecker: '0'
   Module::Build: '0.3601'
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.013, CPAN::Meta::Converter version 2.133380'
+generated_by: 'Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.141170'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -22,7 +22,7 @@ requires:
   Math::Int64: '0.28'
   perl: '5.008'
 resources:
-  bugtracker: https://github.com/plicease/archive-ar-libarchive/issues
-  homepage: http://perl.wdlabs.com/Archive-Ar-Libarchive/
-  repository: git://github.com/plicease/archive-ar-libarchive.git
-version: '0.11'
+  bugtracker: https://github.com/plicease/Archive-Ar-Libarchive/issues
+  homepage: http://perl.wdlabs.com/Archive-Ar-Libarchive
+  repository: git://github.com/plicease/Archive-Ar-Libarchive.git
+version: '0.12'

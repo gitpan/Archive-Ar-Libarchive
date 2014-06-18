@@ -24,16 +24,35 @@
 # endif
 #endif
 
-#define FORMAT_BSD  1
-#define FORMAT_SVR4 2
+#define ARCHIVE_AR_UNDEF   0
+#define ARCHIVE_AR_COMMON  1
+#define ARCHIVE_AR_BSD     2
+#define ARCHIVE_AR_GNU     3
+
+#define _error(ar, message) {                                                   \
+        if(ar->opt_warn)                                                        \
+          warn("%s", message);                                                  \
+        if(ar->error != NULL)                                                   \
+          SvREFCNT_dec(ar->error);                                              \
+        if(ar->longmess != NULL)                                                \
+          SvREFCNT_dec(ar->longmess);                                           \
+        ar->error = ar->longmess = SvREFCNT_inc(newSVpv(message,0));            \
+      }
 
 struct ar_entry;
 
 struct ar {
   struct ar_entry *first;
-  int debug;
-  int output_format;
   SV *callback;
+
+  unsigned int opt_warn       : 2;
+  unsigned int opt_chmod      : 1;
+  unsigned int opt_same_perms : 1;
+  unsigned int opt_chown      : 1;
+  unsigned int opt_type       : 2;
+ 
+  SV *error;
+  SV *longmess;
 };
 
 struct ar_entry {
@@ -42,6 +61,16 @@ struct ar_entry {
   size_t data_size;
   struct ar_entry *next;
 };
+
+static int ar_disk_options(struct ar *ar)
+{
+  int flags = ARCHIVE_EXTRACT_TIME;
+  if(ar->opt_chown)
+    flags |= ARCHIVE_EXTRACT_OWNER;
+  if(ar->opt_same_perms)
+    flags |= ARCHIVE_EXTRACT_PERM;
+  return flags;
+}
 
 static void
 ar_free_entry(struct ar_entry *entry)
@@ -55,7 +84,15 @@ static void
 ar_reset(struct ar *ar)
 {
   struct ar_entry *entry, *old;
-  
+
+  if(ar->error != NULL)
+    SvREFCNT_dec(ar->error);
+  if(ar->longmess != NULL)
+    SvREFCNT_dec(ar->longmess);
+
+  ar->error    = NULL;
+  ar->longmess = NULL;
+
   entry = ar->first;
   while(entry != NULL)
   {
@@ -66,6 +103,54 @@ ar_reset(struct ar *ar)
   }
   
   ar->first = NULL;
+  
+  ar->opt_type       = ARCHIVE_AR_UNDEF;
+}
+
+static struct ar_entry*
+ar_find_by_name(struct ar *ar, const char *filename)
+{
+  struct ar_entry *entry;
+  
+  entry = ar->first;
+  
+  while(entry != NULL)
+  {
+    if(!strcmp(archive_entry_pathname(entry->entry), filename))
+      return entry;
+    entry = entry->next;
+  }
+  
+  return NULL;
+}
+
+static int
+ar_entry_extract(struct ar *ar, struct ar_entry *entry, struct archive *disk)
+{
+  int r;
+  
+  r = archive_write_header(disk, entry->entry);
+  if(r != ARCHIVE_OK)
+  {
+    _error(ar,archive_error_string(disk));
+  }
+  else if(archive_entry_size(entry->entry) > 0)
+  {
+    r = archive_write_data_block(disk, entry->data, entry->data_size, 0);
+    if(r != ARCHIVE_OK)
+      _error(ar, archive_error_string(disk));
+    if(r < ARCHIVE_WARN)
+      return 0;
+  }
+      
+  r = archive_write_finish_entry(disk);
+  if(r != ARCHIVE_OK)
+    _error(ar, archive_error_string(disk));
+
+  if(r < ARCHIVE_WARN)
+    return 0;
+  else
+    return 1;
 }
 
 static __LA_SSIZE_T
@@ -146,24 +231,105 @@ ar_write_archive(struct archive *archive, struct ar *ar)
   struct ar_entry *entry;
   int count;
 
+  if(ar->opt_type == ARCHIVE_AR_GNU)
+  {
+    int size=0;
+    
+    /* calculate the size of the string table */
+    for(entry = ar->first; entry != NULL; entry = entry->next)
+    {
+      int len = strlen(archive_entry_pathname(entry->entry));
+      if(len > 15)
+        size += len + 2;
+    }
+    
+    /* if string table size is zero then we don't need  *
+     * one.  Otherwise create the string table since    *
+     * libarchive does not do that for us.              */
+    if(size > 0)
+    {
+      struct archive_entry *table = archive_entry_new();
+      archive_entry_set_pathname(table, "//");
+      archive_entry_set_size(table, size);
+      char buffer[size];
+      int offset = 0;
+
+      /* write the string table header */
+      r = archive_write_header(archive, table);
+      if(r < ARCHIVE_OK)
+      {
+        _error(ar, archive_error_string(archive));
+        if(r != ARCHIVE_WARN)
+        {
+          archive_entry_free(table);
+          return 0;
+        }
+      }
+
+      /* construct the data section of the string table */    
+      for(entry = ar->first; entry != NULL; entry = entry->next)
+      {
+        const char *name;
+        int len;
+        name = archive_entry_pathname(entry->entry);
+        len = strlen(name);
+        
+        if(len > 15)
+        {
+          memcpy(&buffer[offset], name, len);
+          memcpy(&buffer[offset+len], "/\n", 2);
+          offset += len+2;
+        }
+      }
+      
+      /* write the string table to the archive */
+      r = archive_write_data(archive, buffer, size);
+      archive_entry_free(table);
+      
+      if(r < ARCHIVE_OK)
+      {
+        _error(ar, archive_error_string(archive));
+        if(r != ARCHIVE_WARN)
+          return 0;
+      }
+    }
+  }
+
+  /* write each entry out one at a time */
   for(entry = ar->first; entry != NULL; entry = entry->next)
   {
-    r = archive_write_header(archive, entry->entry);
+    struct archive_entry *short_entry = NULL;
+    
+    if(ar->opt_type == ARCHIVE_AR_COMMON)
+    {
+      const char *name = archive_entry_pathname(entry->entry);
+      int len = strlen(name);
+      if(len > 15)
+      {
+        char buffer[16];
+        short_entry = archive_entry_clone(entry->entry);
+        strncpy(buffer, name, 15);
+        archive_entry_set_pathname(short_entry, buffer);
+      }
+    }
+  
+    r = archive_write_header(archive, short_entry != NULL ? short_entry : entry->entry);
     if(r < ARCHIVE_OK)
     {
-      if(ar->debug)
-        warn("%s", archive_error_string(archive));
+      _error(ar,archive_error_string(archive));
       if(r != ARCHIVE_WARN)
         return 0;
     }
     r = archive_write_data(archive, entry->data, entry->data_size);
     if(r < ARCHIVE_OK)
     {
-      if(ar->debug)
-        warn("%s", archive_error_string(archive));
+      _error(ar,archive_error_string(archive));
       if(r != ARCHIVE_WARN)
         return 0;
     }
+    
+    if(short_entry != NULL)
+      archive_entry_free(short_entry);
   }
 
 #if ARCHIVE_VERSION_NUMBER < 3000000
@@ -182,6 +348,8 @@ ar_read_archive(struct archive *archive, struct ar *ar)
   size_t size;
   off_t  offset;
 
+  ar->opt_type = ARCHIVE_AR_COMMON;
+
   while(1)
   {
 #if HAS_has_archive_read_next_header2
@@ -192,17 +360,36 @@ ar_read_archive(struct archive *archive, struct ar *ar)
     r = archive_read_next_header(archive, &tmp);
     entry = archive_entry_clone(tmp);
 #endif
-      
-    if(r == ARCHIVE_OK)
-      ;
-    else if(r == ARCHIVE_WARN)
+
+
+    if(r == ARCHIVE_OK || r == ARCHIVE_WARN)
     {
-      if(ar->debug)
-        warn("%s", archive_error_string(archive));
+      /* Filename of // means it has a GNU style string *
+       * table                                          */
+      if(!strcmp(archive_entry_pathname(entry),"//"))
+      {
+        ar->opt_type = ARCHIVE_AR_GNU;
+        continue;
+      }
+
+      /* Otherwise rely on libarchive to determine *
+       * archive type                              */
+      if(ar->opt_type == ARCHIVE_AR_COMMON)
+      {
+        switch(archive_format(archive))
+        {
+          case ARCHIVE_FORMAT_AR_BSD:
+            ar->opt_type = ARCHIVE_AR_BSD;
+            break;
+        }
+      }
+      if(r == ARCHIVE_WARN)
+      {
+        _error(ar,archive_error_string(archive));
+      }
     }
     else if(r == ARCHIVE_EOF)
     {
-      archive_entry_free(entry);
 #if ARCHIVE_VERSION_NUMBER < 3000000
       return archive_position_uncompressed(archive);
 #else
@@ -211,7 +398,8 @@ ar_read_archive(struct archive *archive, struct ar *ar)
     }
     else
     {
-      warn("%s", archive_error_string(archive));
+      archive_entry_free(entry);
+      _error(ar,archive_error_string(archive));
       ar_reset(ar);
       return 0;
     }
@@ -222,14 +410,14 @@ ar_read_archive(struct archive *archive, struct ar *ar)
 
     r = archive_read_data(archive, (void*)next->data, next->data_size);
 
-    if(r == ARCHIVE_WARN && ar->debug)
+    if(r == ARCHIVE_WARN)
     {
-      warn("%s", archive_error_string(archive));
+      _error(ar,archive_error_string(archive));
     }
     else if(r < ARCHIVE_OK && r != ARCHIVE_EOF)
     {
-      if(ar->debug)
-        warn("%s", archive_error_string(archive));
+      archive_entry_free(entry);
+      _error(ar,archive_error_string(archive));
       Safefree(next->data);
       Safefree(next);
       return 0;
@@ -256,11 +444,88 @@ _new()
   CODE:
     struct ar *self;
     Newx(self, 1, struct ar);
-    self->first         = NULL;
-    self->debug         = 1;
-    self->output_format = FORMAT_SVR4;
-    self->callback      = NULL;
+    self->first          = NULL;
+    self->callback       = NULL;
+    self->error          = NULL;
+    self->longmess       = NULL;
+    self->opt_warn       = 0;
+    self->opt_chmod      = 1;  /* ignored */
+    self->opt_same_perms = 1;  /* different: pp version this is true for root only */
+    self->opt_chown      = 1; 
+    ar_reset(self);
     RETVAL = self;
+  OUTPUT:
+    RETVAL
+
+int
+set_opt(self, name, value)
+    struct ar *self
+    const char *name
+    int value
+  CODE:
+    if(!strcmp(name, "warn"))
+      RETVAL = self->opt_warn = value;
+    else if(!strcmp(name, "chmod"))
+      RETVAL = self->opt_chmod = value;
+    else if(!strcmp(name, "same_perms"))
+      RETVAL = self->opt_same_perms = value;
+    else if(!strcmp(name, "chown"))
+      RETVAL = self->opt_chown = value;
+    else if(!strcmp(name, "type"))
+      RETVAL = self->opt_type = value;
+    else
+      warn("unknown or unsupported option %s", name);
+  OUTPUT:
+    RETVAL
+
+int
+get_opt(self, name)
+    struct ar *self
+    const char *name
+  CODE:
+    if(!strcmp(name, "warn"))
+      RETVAL = self->opt_warn;
+    else if(!strcmp(name, "chmod"))
+      RETVAL = self->opt_chmod;
+    else if(!strcmp(name, "same_perms"))
+      RETVAL = self->opt_same_perms;
+    else if(!strcmp(name, "chown"))
+      RETVAL = self->opt_chown;
+    else if(!strcmp(name, "type"))
+    {
+      if(self->opt_type == ARCHIVE_AR_UNDEF)
+        XSRETURN_EMPTY;
+      else
+        RETVAL = self->opt_type;
+    }
+    else
+      warn("unknown or unsupported option %s", name);
+  OUTPUT:
+    RETVAL
+
+void
+_set_error(self, message, longmess)
+    struct ar *self
+    SV *message
+    SV *longmess
+  CODE:
+    if(self->error != NULL)
+      SvREFCNT_dec(self->error);
+    if(self->longmess != NULL)
+      SvREFCNT_dec(self->longmess);
+    self->error = SvREFCNT_inc(message);
+    self->longmess = SvREFCNT_inc(longmess);
+
+SV *
+error(self, ...)
+    struct ar *self
+  CODE:
+    if(self->error == NULL)
+      XSRETURN_EMPTY;
+    if(items >= 2 && SvTRUE(ST(1)))
+      RETVAL = SvREFCNT_inc(self->longmess);
+    else
+      RETVAL = SvREFCNT_inc(self->error);
   OUTPUT:
     RETVAL
 
@@ -279,14 +544,13 @@ _read_from_filename(self, filename)
     r = archive_read_open_filename(archive, filename, 1024);
     if(r == ARCHIVE_OK || r == ARCHIVE_WARN)
     {
-      if(r == ARCHIVE_WARN && self->debug)
-        warn("%s", archive_error_string(archive));
+      if(r == ARCHIVE_WARN)
+        _error(self, archive_error_string(archive));
       RETVAL = ar_read_archive(archive, self);
     }
     else
     {
-      if(self->debug)
-        warn("%s", archive_error_string(archive));
+      _error(self,archive_error_string(archive));
       RETVAL = 0;
     }
 #if ARCHIVE_VERSION_NUMBER < 3000000
@@ -314,13 +578,13 @@ _read_from_callback(self, callback)
 
     if(r == ARCHIVE_OK || r == ARCHIVE_WARN)
     {
-      if(r == ARCHIVE_WARN && self->debug)
-        warn("%s", archive_error_string(archive));
+      if(r == ARCHIVE_WARN)
+        _error(self,archive_error_string(archive));
       RETVAL = ar_read_archive(archive, self);
     }
     else
     {
-      warn("%s", archive_error_string(archive));
+      _error(self,archive_error_string(archive));
       RETVAL = 0;
     }    
 #if ARCHIVE_VERSION_NUMBER < 3000000
@@ -342,15 +606,15 @@ _write_to_filename(self, filename)
     int r;
     
     archive = archive_write_new();
-    if(self->output_format == FORMAT_BSD)
+    if(self->opt_type == ARCHIVE_AR_BSD)
       r = archive_write_set_format_ar_bsd(archive);
     else
       r = archive_write_set_format_ar_svr4(archive);
-    if(r != ARCHIVE_OK && self->debug)
-      warn("%s", archive_error_string(archive));
+    if(r != ARCHIVE_OK)
+      _error(self,archive_error_string(archive));
     r = archive_write_open_filename(archive, filename);
-    if(r != ARCHIVE_OK && self->debug)
-      warn("%s", archive_error_string(archive));
+    if(r != ARCHIVE_OK)
+      _error(self,archive_error_string(archive));
     if(r == ARCHIVE_OK || r == ARCHIVE_WARN)
       RETVAL = ar_write_archive(archive, self);
     else
@@ -374,15 +638,16 @@ _write_to_callback(self, callback)
     self->callback = SvREFCNT_inc(callback);
 
     archive = archive_write_new();
-    if(self->output_format == FORMAT_BSD)
+    if(self->opt_type == ARCHIVE_AR_BSD)
       r = archive_write_set_format_ar_bsd(archive);
     else
-      r = archive_write_set_format_ar_svr4(archive);    
-    if(r != ARCHIVE_OK && self->debug)
-      warn("%s", archive_error_string(archive));
+      r = archive_write_set_format_ar_svr4(archive);
+    if(r != ARCHIVE_OK)
+      _error(self,archive_error_string(archive));
+    archive_write_set_bytes_in_last_block(archive, 1);
     r = archive_write_open(archive, (void*)self, NULL, ar_write_callback, ar_close_callback);
-    if(r != ARCHIVE_OK && self->debug)
-      warn("%s", archive_error_string(archive));
+    if(r != ARCHIVE_OK)
+      _error(self,archive_error_string(archive));
     if(r == ARCHIVE_OK || r == ARCHIVE_WARN)
       RETVAL = ar_write_archive(archive, self);
     else
@@ -484,23 +749,6 @@ _list_files(self)
   OUTPUT:
     RETVAL
 
-int
-_get_debug(self)
-    struct ar *self
-  CODE:
-    RETVAL = self->debug;
-  OUTPUT:
-    RETVAL
-
-void
-_set_debug(self, value)
-    struct ar *self
-    int value
-  CODE:
-    self->debug = value;
-  OUTPUT:
-    RETVAL
-
 void
 DESTROY(self)
     struct ar *self
@@ -517,47 +765,191 @@ get_content(self, filename)
     HV *hv;
     int found;
     
-    entry = self->first;
-    found = 0;
+    entry = ar_find_by_name(self, filename);
     
-    while(entry != NULL)
+    if(entry != NULL)
     {
-      if(!strcmp(archive_entry_pathname(entry->entry), filename))
-      {
-        hv = newHV();
+      hv = newHV();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-value"
-        hv_store(hv, "name", 4, newSVpv(filename, strlen(filename)),         0);
-        hv_store(hv, "date", 4, newSVi64(archive_entry_mtime(entry->entry)), 0);
-        hv_store(hv, "uid",  3, newSVi64(archive_entry_uid(entry->entry)),   0);
-        hv_store(hv, "gid",  3, newSVi64(archive_entry_gid(entry->entry)),   0);
-        hv_store(hv, "mode", 4, newSViv(archive_entry_mode(entry->entry)),   0);
-        hv_store(hv, "size", 4, newSViv(entry->data_size),                   0);
-        hv_store(hv, "data", 4, newSVpv(entry->data, entry->data_size),      0);
+      hv_store(hv, "name", 4, newSVpv(filename, strlen(filename)),         0);
+      hv_store(hv, "date", 4, newSVi64(archive_entry_mtime(entry->entry)), 0);
+      hv_store(hv, "uid",  3, newSVi64(archive_entry_uid(entry->entry)),   0);
+      hv_store(hv, "gid",  3, newSVi64(archive_entry_gid(entry->entry)),   0);
+      hv_store(hv, "mode", 4, newSViv(archive_entry_mode(entry->entry)),   0);
+      hv_store(hv, "size", 4, newSViv(entry->data_size),                   0);
+      hv_store(hv, "data", 4, newSVpv(entry->data, entry->data_size),      0);
 #pragma clang diagnostic pop
-        RETVAL = newRV_noinc((SV*)hv);
+      RETVAL = newRV_noinc((SV*)hv);
       
-        found = 1;
-        break;
-      }
-      entry = entry->next;
     }
-    
-    if(!found)
+    else
     {
       XSRETURN_EMPTY;
     }
   OUTPUT:
     RETVAL
 
-void
-set_output_format_bsd(self)
+SV *
+get_data(self, filename)
     struct ar *self
+    const char *filename
   CODE:
-    self->output_format = FORMAT_BSD;
+    struct ar_entry *entry;
+    entry = ar_find_by_name(self, filename);
+    if(entry == NULL)
+      XSRETURN_EMPTY;
+    RETVAL = newSVpv(entry->data, entry->data_size);
+  OUTPUT:
+    RETVAL
+
 
 void
-set_output_format_svr4(self)
+rename(self, old, new)
+    struct ar *self
+    const char *old
+    const char *new
+  CODE:
+    struct ar_entry *entry;
+    entry = ar_find_by_name(self, old);
+    if(entry != NULL)
+      archive_entry_set_pathname(entry->entry, new);
+
+int
+extract(self)
     struct ar *self
   CODE:
-    self->output_format = FORMAT_SVR4;
+    struct ar_entry *entry;
+    struct archive *disk;
+    int ok = 1;
+    
+    entry = self->first;
+    
+    disk = archive_write_disk_new();
+    archive_write_disk_set_options(disk, ar_disk_options(self));
+    archive_write_disk_set_standard_lookup(disk);
+    
+    while(entry != NULL)
+    {
+      if(ar_entry_extract(self, entry, disk) == 0)
+      {
+        ok = 0;
+        break;
+      }
+      entry = entry->next;
+    }
+    
+    archive_write_close(disk);
+    archive_write_free(disk);
+    
+    if(ok)
+      RETVAL = 1;
+    else
+      XSRETURN_EMPTY;
+  OUTPUT:
+    RETVAL
+
+int
+extract_file(self,filename)
+    struct ar *self
+    const char *filename
+  CODE:
+    struct ar_entry *entry;
+    struct archive *disk;
+    int ok;
+
+    entry = ar_find_by_name(self, filename);
+    
+    if(entry == NULL)
+      XSRETURN_EMPTY;
+    
+    disk = archive_write_disk_new();
+    archive_write_disk_set_options(disk, ar_disk_options(self));
+    archive_write_disk_set_standard_lookup(disk);
+    
+    ok = ar_entry_extract(self, entry, disk);
+
+    archive_write_close(disk);
+    archive_write_free(disk);
+    
+    if(ok)
+      RETVAL = 1;
+    else
+      XSRETURN_EMPTY;
+    
+  OUTPUT:
+    RETVAL
+
+
+int
+type(self)
+    struct ar *self
+  CODE:
+    RETVAL = self->opt_type;
+  OUTPUT:
+    RETVAL
+
+
+int
+contains_file(self, filename)
+    struct ar *self
+    const char *filename
+  CODE:
+    if(ar_find_by_name(self, filename))
+      RETVAL = 1;
+    else
+      XSRETURN_EMPTY;
+  OUTPUT:
+    RETVAL
+
+
+void
+clear(self)
+    struct ar *self
+  CODE:
+    ar_reset(self);
+
+
+int
+_chmod(self, filename, mode)
+    struct ar *self
+    const char *filename
+    int mode
+  CODE:
+    struct ar_entry *entry;
+    entry = ar_find_by_name(self, filename);
+    if(entry != NULL)
+    {
+      archive_entry_set_mode(entry->entry, mode);
+      RETVAL = 1;
+    }
+    else
+    {
+      XSRETURN_EMPTY;
+    }
+  OUTPUT:
+    RETVAL
+
+
+int
+_chown(self, filename, uid, gid)
+    struct ar *self
+    const char *filename
+    int uid
+    SV *gid
+  CODE:
+    struct ar_entry *entry;
+    entry = ar_find_by_name(self, filename);
+    if(entry != NULL)
+    {
+      if(uid >= 0)
+        archive_entry_set_uid(entry->entry, uid);
+      if(SvOK(gid) && SvIV(gid) >= 0)
+      {
+        archive_entry_set_gid(entry->entry, SvIV(gid));
+      }
+    }
+    else
+    {
+      XSRETURN_EMPTY;
+    }

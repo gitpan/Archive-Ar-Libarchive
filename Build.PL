@@ -20,7 +20,7 @@ my %module_build_args = (
     "Graham Ollis <plicease\@cpan.org>"
   ],
   "dist_name" => "Archive-Ar-Libarchive",
-  "dist_version" => "0.12",
+  "dist_version" => "2.00",
   "license" => "perl",
   "module_name" => "Archive::Ar::Libarchive",
   "recommends" => {},
@@ -29,18 +29,21 @@ my %module_build_args = (
     "Alien::Libarchive" => 0,
     "File::Basename" => 0,
     "Math::Int64" => "0.28",
+    "base" => 0,
     "perl" => "5.008"
   },
   "script_files" => [],
   "test_requires" => {
-    "Test::More" => 0
+    "Test::MockObject" => 0,
+    "Test::More" => "0.94"
   }
 );
 
 
 my %fallback_build_requires = (
   "Module::Build" => "0.3601",
-  "Test::More" => 0
+  "Test::MockObject" => 0,
+  "Test::More" => "0.94"
 );
 
 

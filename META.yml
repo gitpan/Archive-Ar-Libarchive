@@ -4,7 +4,8 @@ author:
   - 'Graham Ollis <plicease@cpan.org>'
 build_requires:
   Module::Build: '0.3601'
-  Test::More: '0'
+  Test::MockObject: '0'
+  Test::More: '0.94'
 configure_requires:
   Alien::Libarchive: '0.16'
   ExtUtils::CChecker: '0'
@@ -20,9 +21,10 @@ requires:
   Alien::Libarchive: '0'
   File::Basename: '0'
   Math::Int64: '0.28'
+  base: '0'
   perl: '5.008'
 resources:
   bugtracker: https://github.com/plicease/Archive-Ar-Libarchive/issues
   homepage: http://perl.wdlabs.com/Archive-Ar-Libarchive
   repository: git://github.com/plicease/Archive-Ar-Libarchive.git
-version: '0.12'
+version: '2.00'

@@ -10,7 +10,7 @@ use Carp qw( carp longmess );
 use File::Basename ();
 
 # ABSTRACT: Interface for manipulating ar archives with libarchive
-our $VERSION = '2.00'; # VERSION
+our $VERSION = '2.01'; # VERSION
 
 unless($^O eq 'MSWin32')
 {
@@ -260,7 +260,7 @@ Archive::Ar::Libarchive - Interface for manipulating ar archives with libarchive
 
 =head1 VERSION
 
-version 2.00
+version 2.01
 
 =head1 SYNOPSIS
 
@@ -319,7 +319,7 @@ intentionally to keep similarity between the Archive::* modules.
  my $ar = Archive::Ar::Libarchive->new($filename);
  my $ar = Archive::Ar::Libarchive->new($fh);
 
-Returns a new L<Archive::AR::Libarchive> object.  Without a filename or 
+Returns a new L<Archive::Ar::Libarchive> object.  Without a filename or 
 glob, it returns an empty object.  If passed a filename as a scalar or a 
 GLOB, it will attempt to populate from either of those sources.  If it 
 fails, you will receive C<undef>, instead of an object reference.

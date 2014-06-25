@@ -27,4 +27,4 @@ resources:
   bugtracker: https://github.com/plicease/Archive-Ar-Libarchive/issues
   homepage: http://perl.wdlabs.com/Archive-Ar-Libarchive
   repository: git://github.com/plicease/Archive-Ar-Libarchive.git
-version: '2.02'
+version: 2.02_01

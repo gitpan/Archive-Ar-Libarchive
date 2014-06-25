@@ -47,7 +47,7 @@
          }
       }
    },
-   "release_status" : "stable",
+   "release_status" : "testing",
    "resources" : {
       "bugtracker" : {
          "web" : "https://github.com/plicease/Archive-Ar-Libarchive/issues"
@@ -59,6 +59,6 @@
          "web" : "https://github.com/plicease/Archive-Ar-Libarchive"
       }
    },
-   "version" : "2.02"
+   "version" : "2.02_01"
 }
 

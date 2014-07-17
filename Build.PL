@@ -20,7 +20,7 @@ my %module_build_args = (
     "Graham Ollis <plicease\@cpan.org>"
   ],
   "dist_name" => "Archive-Ar-Libarchive",
-  "dist_version" => "2.03",
+  "dist_version" => "2.04",
   "license" => "perl",
   "module_name" => "Archive::Ar::Libarchive",
   "recommends" => {},

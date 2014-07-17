@@ -1,5 +1,9 @@
 Revision history for Archive-Ar-Libarchive
 
+2.04      2014-07-17 12:55:50 -0400
+  - added "symbols" option
+  - compatability with Archive::Ar 2.02 API
+
 2.03      2014-07-08 06:49:30 -0400
   - fixed common format failure on OpenBSD i386 (GH#15)
 
@@ -41,7 +45,7 @@ Revision history for Archive-Ar-Libarchive
   - type detection: after reading an archive the type method
     will tell you the type of ar file.
   - output format defaults to input format
-  - read and write metods will now accept a file handle or IO::Handle
+  - read and write methods will now accept a file handle or IO::Handle
     object
   - GNU format is now supported for output
 

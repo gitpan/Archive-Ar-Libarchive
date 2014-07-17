@@ -28,6 +28,7 @@ t/50_remove.t
 t/55_write.t
 t/60_extract.t
 t/65_gnu.t
+t/66_gnu_symtab.t
 t/70_bsd.t
 t/basic.t
 t/chmod.t
@@ -40,6 +41,7 @@ t/extract_file.t
 t/foo.ar
 t/write.t
 typemap
+xs/ar_aix_big.h
 xs/perl_math_int64.c
 xs/perl_math_int64.h
 xs/perl_math_int64_types.h

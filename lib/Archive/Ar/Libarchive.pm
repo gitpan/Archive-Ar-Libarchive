@@ -10,7 +10,7 @@ use Carp qw( carp longmess );
 use File::Basename ();
 
 # ABSTRACT: Interface for manipulating ar archives with libarchive
-our $VERSION = '2.03'; # VERSION
+our $VERSION = '2.04'; # VERSION
 
 unless($^O eq 'MSWin32')
 {
@@ -260,7 +260,7 @@ Archive::Ar::Libarchive - Interface for manipulating ar archives with libarchive
 
 =head1 VERSION
 
-version 2.03
+version 2.04
 
 =head1 SYNOPSIS
 
@@ -302,10 +302,7 @@ similar  circumstances.
 
 The main advantage of L<Archive::Ar> over this module is that it is 
 written in pure perl, and thus does not require a compiler or 
-libarchive.  The advantage of this module (at least as of this writing) 
-is that it supports GNU (read) and BSD (read and write) extensions for 
-longer member filenames.  As an XS module using libarchive it may also
-be faster.
+libarchive.  As an XS module using libarchive it may be faster.
 
 You may notice that the API to L<Archive::Ar::Libarchive> and
 L<Archive::Ar> is similar to L<Archive::Tar> and this was done
@@ -365,6 +362,14 @@ Change the owners of extracted files, if possible.  Default is true.
 
 Archive type.  May be GNU, BSD or COMMON, or undef if no archive
 has been read.  Defaults to the type of the archive read or C<undef>.
+
+=item symbols
+
+Provide a filename for the symbol table, if present.  If set, the
+symbol table is treated as a file that can be read from or written
+to an archive.  It is an error if the filename provided matches the
+name of a file in the archive.  If C<undef>, the symbol table is
+ignored.  Defaults to C<undef>.
 
 =back
 

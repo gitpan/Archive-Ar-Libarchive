@@ -20,7 +20,7 @@ my %module_build_args = (
     "Graham Ollis <plicease\@cpan.org>"
   ],
   "dist_name" => "Archive-Ar-Libarchive",
-  "dist_version" => "2.05",
+  "dist_version" => "2.05_02",
   "license" => "perl",
   "module_name" => "Archive::Ar::Libarchive",
   "recommends" => {},
@@ -34,6 +34,7 @@ my %module_build_args = (
   },
   "script_files" => [],
   "test_requires" => {
+    "FindBin" => 0,
     "Test::MockObject" => 0,
     "Test::More" => "0.94"
   }
@@ -41,6 +42,7 @@ my %module_build_args = (
 
 
 my %fallback_build_requires = (
+  "FindBin" => 0,
   "Module::Build" => "0.3601",
   "Test::MockObject" => 0,
   "Test::More" => "0.94"

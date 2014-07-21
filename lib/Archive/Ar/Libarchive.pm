@@ -3,14 +3,16 @@ package Archive::Ar::Libarchive;
 use strict;
 use warnings;
 use base qw( Exporter );
-use constant COMMON => 1;
-use constant BSD    => 2;
-use constant GNU    => 3;
+use constant COMMON    => 1;
+use constant BSD       => 2;
+use constant GNU       => 3;
+use constant AIX_BIG   => 4;
+use constant AIX_SMALL => 5;
 use Carp qw( carp longmess );
 use File::Basename ();
 
 # ABSTRACT: Interface for manipulating ar archives with libarchive
-our $VERSION = '2.05'; # VERSION
+our $VERSION = '2.05_02'; # VERSION
 
 unless($^O eq 'MSWin32')
 {
@@ -21,7 +23,7 @@ unless($^O eq 'MSWin32')
 require XSLoader;
 XSLoader::load('Archive::Ar::Libarchive', $VERSION);
 
-our @EXPORT_OK = qw( COMMON BSD GNU );
+our @EXPORT_OK = qw( COMMON BSD GNU AIX_BIG AIX_SMALL );
 
 
 sub new
@@ -44,24 +46,51 @@ sub new
 
 sub read
 {
-  my($self, $filename_or_handle) = @_;
+  my($self, $fh) = @_;
 
   my $ret = 0;
   
-  if(ref $filename_or_handle)
+  unless(ref $fh)
   {
-    return $self->_error("Not a filehandle") unless eval{*$filename_or_handle{IO}} or $filename_or_handle->isa('IO::Handle');
-    my $buffer;
-    $ret = $self->_read_from_callback(sub {
-      my $br = read $filename_or_handle, $buffer, 1024;
-      ((defined $br ? 0 : -30), \$buffer);
-    });
-    close $filename_or_handle;
+    my $fn = $fh;
+    undef $fh;
+    open $fh, '<', $fn;
   }
-  else
+  
+  return $self->_error("Not a filehandle") unless eval{*$fh{IO}} or $fh->isa('IO::Handle');
+
+  my $br = read $fh, my $sig, 8;
+  if($br == 8)
   {
-    $ret = $self->_read_from_filename($filename_or_handle);
+    if($sig eq "<bigaf>\n")
+    {
+      $self->set_opt(type => AIX_BIG);
+      if($Archive::Ar::Libarchive::enable_aix)
+      {
+        require Archive::Ar::Libarchive::AixBig;
+        return Archive::Ar::Libarchive::AixBig::read($self, $sig, $fh);
+      }
+    }
+    elsif($sig eq "<aiaff>\n")
+    {
+      $self->set_opt(type => AIX_SMALL);
+    }
   }
+  
+  my $first = 1;
+
+  my $buffer;
+  $ret = $self->_read_from_callback(sub {
+    if($first)
+    {
+      $first = 0;
+      return \$sig;
+    }
+  
+    $br = read $fh, $buffer, 1024;
+    ((defined $br ? 0 : -30), \$buffer);
+  });
+  close $fh;
 
   $ret || undef;
 }
@@ -260,7 +289,7 @@ Archive::Ar::Libarchive - Interface for manipulating ar archives with libarchive
 
 =head1 VERSION
 
-version 2.05
+version 2.05_02
 
 =head1 SYNOPSIS
 

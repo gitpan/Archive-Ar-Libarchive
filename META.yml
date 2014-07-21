@@ -3,6 +3,7 @@ abstract: 'Interface for manipulating ar archives with libarchive'
 author:
   - 'Graham Ollis <plicease@cpan.org>'
 build_requires:
+  FindBin: '0'
   Module::Build: '0.3601'
   Test::MockObject: '0'
   Test::More: '0.94'
@@ -27,4 +28,4 @@ resources:
   bugtracker: https://github.com/plicease/Archive-Ar-Libarchive/issues
   homepage: http://perl.wdlabs.com/Archive-Ar-Libarchive
   repository: git://github.com/plicease/Archive-Ar-Libarchive.git
-version: '2.05'
+version: 2.05_02

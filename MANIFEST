@@ -11,6 +11,7 @@ dist.ini
 inc/My/ModuleBuild.pm
 lib/Archive/Ar/Libarchive.pm
 lib/Archive/Ar/Libarchive.xs
+lib/Archive/Ar/Libarchive/AixBig.pm
 t/00_diag.t
 t/00_diag.txt
 t/01_use.t
@@ -30,6 +31,7 @@ t/60_extract.t
 t/65_gnu.t
 t/66_gnu_symtab.t
 t/70_bsd.t
+t/aix_big.t
 t/basic.t
 t/chmod.t
 t/chown.t
@@ -38,6 +40,7 @@ t/common.t
 t/contains_file.t
 t/error.t
 t/extract_file.t
+t/foo.aixbig.ar
 t/foo.ar
 t/write.t
 typemap
